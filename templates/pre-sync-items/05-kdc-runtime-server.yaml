@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kdc-deployment
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kdc
+  template:
+    metadata:
+      labels:
+        app: kdc
+    spec:
+      containers:
+      - name: kdc
+        image: registry.support.openinnovation.ai/gitlab/openinnovationai/platform/infra/utils/ozone:20260507-1-with-kubectl-python-linux
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "Staging KDC configuration, database, and master key stash..."
+          mkdir -p /var/lib/krb5kdc
+          cd /var/lib/krb5kdc
+          
+          cp /etc/security/keys/principal ./principal
+          cp /etc/security/keys/principal.kadm5 ./principal.kadm5
+          cp /etc/security/keys/principal.ok ./principal.ok
+          cp /etc/security/keys/kdc-stash ./.k5.CLOUD.DEVELOP.OPENINNOVATION.AI
+          cp /etc/security/keys/kdc.conf ./kdc.conf
+          
+          echo "Staged files in /var/lib/krb5kdc:"
+          ls -la /var/lib/krb5kdc
+          
+          echo "Starting Kerberos KDC daemon..."
+          exec krb5kdc -n -r CLOUD.DEVELOP.OPENINNOVATION.AI
+        volumeMounts:
+        - name: keys-vol
+          mountPath: /etc/security/keys
+      volumes:
+      - name: keys-vol
+        secret:
+          secretName: ozone-kerberos-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kdc-service
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  ports:
+  - port: 88
+    name: kerberos
+  - port: 749
+    name: kadmin
+  selector:
+    app: kdc

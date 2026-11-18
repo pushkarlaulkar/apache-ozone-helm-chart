@@ -1,0 +1,171 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.job.name }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  template:
+    spec:
+      serviceAccountName: {{ .Values.job.serviceAccountName }}
+      restartPolicy: {{ .Values.job.restartPolicy }}
+      containers:
+        - name: generator
+          image: "{{ .Values.job.image.registry }}/{{ .Values.job.image.repository }}:{{ .Values.job.image.tag }}"
+          imagePullPolicy: {{ .Values.job.image.pullPolicy | default "IfNotPresent" }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              echo "Initializing explicit KDC configuration and database..."
+              REALM="{{ .Values.kerberos.realm }}"
+              
+              mkdir -p /etc/security/keytabs
+              cd /var/lib/krb5kdc
+              
+              # Explicitly create kdc.conf with uppercase realm
+              cat <<EOF > /var/lib/krb5kdc/kdc.conf
+              [kdcdefaults]
+                  kdc_ports = 88,750
+
+              [realms]
+                  {{ .Values.kerberos.realm }} = {
+                      database_name = /var/lib/krb5kdc/principal
+                      admin_keytab = /var/lib/krb5kdc/kadm5.keytab
+                      acl_file = /var/lib/krb5kdc/kadm5.acl
+                      key_stash_file = /var/lib/krb5kdc/.k5.{{ .Values.kerberos.realm }}
+                  }
+              EOF
+              
+              # Initialize KDC database
+              if [ ! -f ".k5.{{ .Values.kerberos.realm }}" ]; then
+                kdb5_util destroy -f 2>/dev/null || true
+                rm -rf principal* .k5.*
+                kdb5_util -r "$REALM" create -s -P "{{ .Values.kerberos.masterPassword }}"
+              fi
+              
+              echo "Generated KDC files:"
+              ls -la /var/lib/krb5kdc
+              
+              export_keytab() {
+                kadmin.local -r "$REALM" -q "addprinc -randkey $1@$REALM"
+                kadmin.local -r "$REALM" -q "ktadd -norandkey -k /etc/security/keytabs/$2.keytab $1@$REALM"
+              }
+              
+              {{- range .Values.kerberos.keytabs }}
+              export_keytab {{ .principal }} {{ .name }}
+              {{- end }}
+              
+              # Unified krb5.conf with uppercase realm and correct KDC endpoint
+              cat <<EOF > /tmp/krb5.conf
+              [libdefaults]
+                  default_realm = {{ .Values.kerberos.realm }}
+                  dns_lookup_realm = false
+                  dns_lookup_kdc = false
+                  rdns = false
+                  ticket_lifetime = 24h
+                  renew_lifetime = 7d
+                  forwardable = true
+                  udp_preference_limit = 1
+              [realms]
+                  {{ .Values.kerberos.realm }} = {
+                      kdc = {{ .Values.kerberos.kdcEndpoint }}
+                      admin_server = {{ .Values.kerberos.adminServer }}
+                  }
+              [domain_realm]
+                  .{{ .Values.kerberos.domainRealm }} = {{ .Values.kerberos.realm }}
+                  {{ .Values.kerberos.domainRealm }} = {{ .Values.kerberos.realm }}
+              EOF
+              
+              echo "Packaging all files into Kubernetes Secret via API..."
+              
+              python3 - << 'EOF'
+              import os, base64, urllib.request, json, ssl
+              from urllib.error import HTTPError
+
+              ns = open("/var/run/secrets/kubernetes.io/serviceaccount/namespace").read().strip()
+              token = open("/var/run/secrets/kubernetes.io/serviceaccount/token").read().strip()
+
+              def read_b64(path):
+                  if not os.path.exists(path):
+                      return ""
+                  with open(path, "rb") as f:
+                      return base64.b64encode(f.read()).decode("utf-8")
+
+              secret_data = {
+                  "apiVersion": "v1",
+                  "kind": "Secret",
+                  "metadata": {
+                      "name": "{{ .Values.kerberos.secrets.kerberosSecretName }}",
+                      "namespace": ns
+                  },
+                  "type": "Opaque",
+                  "data": {
+                      "krb5.conf": read_b64("/tmp/krb5.conf"),
+                      "kdc.conf": read_b64("/var/lib/krb5kdc/kdc.conf"),
+                      {{- range .Values.kerberos.keytabs }}
+                      "{{ .name }}.keytab": read_b64("/etc/security/keytabs/{{ .name }}.keytab"),
+                      {{- end }}
+                      "principal": read_b64("/var/lib/krb5kdc/principal"),
+                      "principal.kadm5": read_b64("/var/lib/krb5kdc/principal.kadm5"),
+                      "principal.ok": read_b64("/var/lib/krb5kdc/principal.ok"),
+                      "kdc-stash": read_b64("/var/lib/krb5kdc/.k5.{{ .Values.kerberos.realm }}")
+                  }
+              }
+
+              api_url = f"https://kubernetes.default.svc/api/v1/namespaces/{ns}/secrets"
+              ctx = ssl.create_default_context()
+              ctx.check_hostname = False
+              ctx.verify_mode = ssl.CERT_NONE
+
+              def create_secret_if_missing(secret_data):
+                  secret_name = secret_data["metadata"]["name"]
+                  secret_url = f"{api_url}/{secret_name}"
+                  headers = {"Authorization": f"Bearer {token}"}
+                  get_req = urllib.request.Request(secret_url, headers=headers, method="GET")
+
+                  try:
+                    with urllib.request.urlopen(get_req, context=ctx):
+                      print(f"Secret '{secret_name}' already exists; leaving it unchanged.")
+                      return
+                  except HTTPError as error:
+                    if error.code != 404:
+                      raise
+
+                  create_req = urllib.request.Request(
+                    api_url,
+                    data=json.dumps(secret_data).encode("utf-8"),
+                    headers={**headers, "Content-Type": "application/json"},
+                    method="POST"
+                  )
+                  try:
+                    with urllib.request.urlopen(create_req, context=ctx):
+                      print(f"Successfully created Kubernetes Secret '{secret_name}'.")
+                  except HTTPError as error:
+                    if error.code != 409:
+                      raise
+                    print(f"Secret '{secret_name}' was created concurrently; leaving it unchanged.")
+
+              create_secret_if_missing(secret_data)
+
+              import secrets
+              
+              sig_data = {
+                  "apiVersion": "v1",
+                  "kind": "Secret",
+                  "metadata": {
+                      "name": "{{ .Values.kerberos.secrets.signatureSecretName }}",
+                      "namespace": ns
+                  },
+                  "type": "Opaque",
+                  "data": {
+                      "hadoop-http-auth-signature-secret": base64.b64encode(secrets.token_hex(32).encode("utf-8")).decode("utf-8")
+                  }
+              }
+
+              create_secret_if_missing(sig_data)
+              EOF

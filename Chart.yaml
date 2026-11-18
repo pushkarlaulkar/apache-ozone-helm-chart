@@ -1,0 +1,24 @@
+apiVersion: v2
+name: apache-ozone
+description: A Helm chart for deploying the Apache Ozone
+
+# Chart type
+# Application charts are a collection of templates that can be packaged and deployed.
+type: application
+
+# Chart version. Increment when the chart changes.
+version: 0.0.1
+
+# Application version.
+appVersion: 0.0.1
+
+keywords:
+  - apache
+  - ozone
+
+home: https://ozone.apache.org
+sources:
+  - https://github.com/apache/ozone
+maintainers:
+  - name: Pushkar Laulkar
+    email: pushkar.laulkar@yahoo.com

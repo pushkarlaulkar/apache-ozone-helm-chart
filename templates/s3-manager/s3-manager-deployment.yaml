@@ -1,0 +1,53 @@
+{{- if .Values.s3manager.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.s3manager.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.s3manager.name }}
+    app: {{ .Values.s3manager.name }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  replicas: {{ .Values.s3manager.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.s3manager.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.s3manager.name }}
+    spec:
+      containers:
+        - name: {{ .Values.s3manager.name }}
+          image: "{{ .Values.s3manager.image.repository }}:{{ .Values.s3manager.image.tag }}"
+          imagePullPolicy: {{ .Values.s3manager.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.s3manager.service.targetPort }}
+              name: http
+          env:
+            - name: ENDPOINT
+              value: {{ .Values.s3manager.env.endpoint | quote }}
+            - name: USE_SSL
+              value: {{ .Values.s3manager.env.useSsl | quote }}
+            - name: BUCKET_LOOKUP
+              value: {{ .Values.s3manager.env.bucketLookup | quote }}
+            - name: REGION
+              value: {{ .Values.s3manager.env.region | quote }}
+            - name: ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3manager.secret.name }}
+                  key: {{ .Values.s3manager.secret.accessKeyKey }}
+            - name: SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3manager.secret.name }}
+                  key: {{ .Values.s3manager.secret.secretKeyKey }}
+            - name: ALLOW_DELETE
+              value: {{ .Values.s3manager.env.allowDelete | quote }}
+          resources:
+            {{- toYaml .Values.s3manager.resources | nindent 12 }}
+{{- end -}}

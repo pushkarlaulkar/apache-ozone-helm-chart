@@ -1,0 +1,22 @@
+{
+  "name": "apache-ozone",
+  "version": "0.0.1",
+  "description": "apache-ozone helm chart",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "helm lint"
+  },
+  "keywords": [
+    "helm",
+    "apache-ozone"
+  ],
+  "author": "Pushkar Laulkar",
+  "license": "ISC",
+  "devDependencies": {
+    "@release-it/keep-a-changelog": "^5.0.0",
+    "release-it": "^17.1.1"
+  }
+}

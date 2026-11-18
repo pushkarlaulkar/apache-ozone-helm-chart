@@ -1,0 +1,501 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License
+
+image:
+  repository: apache/ozone
+  pullPolicy: IfNotPresent
+  tag: 2.1.2-slim
+
+imagePullSecrets: []
+
+# Cluster ID
+clusterId: cluster1
+
+# Common environment variables (templated)
+env:
+
+  - name: CORE-SITE.XML_hadoop.security.authentication
+    value: "kerberos"
+  - name: CORE-SITE.XML_hadoop.security.authorization
+    value: "true"
+  - name: CORE-SITE.XML_hadoop.security.auth_to_local
+    value: "RULE:[2:$1@$0](.*@your-hostname)s/.*/ozoneadmin/"
+
+  # Security & Authentication Settings
+  - name: OZONE-SITE.XML_ozone.security.enabled
+    value: "true"
+  - name: OZONE-SITE.XML_hadoop.security.authentication
+    value: "kerberos"
+  - name: OZONE-SITE.XML_ozone.administrators
+    value: "ozoneadmin,scm,om"
+  - name: OZONE-SITE.XML_ozone.s3.administrators
+    value: "ozoneadmin"
+
+  # HTTP Kerberos & Filter Settings
+  - name: OZONE-SITE.XML_ozone.security.http.kerberos.enabled
+    value: "true"
+  - name: OZONE-SITE.XML_ozone.http.filter.initializers
+    value: "org.apache.hadoop.security.AuthenticationFilterInitializer"
+
+  # SCM Kerberos Settings
+  - name: OZONE-SITE.XML_hdds.scm.kerberos.principal
+    value: "scm/scm@your-hostname"
+  - name: OZONE-SITE.XML_hdds.scm.kerberos.keytab.file
+    value: "/opt/hadoop/etc/hadoop/scm.keytab"
+  - name: OZONE-SITE.XML_hdds.scm.http.auth.kerberos.principal
+    value: "scm/scm@your-hostname"
+  - name: OZONE-SITE.XML_hdds.scm.http.auth.kerberos.keytab
+    value: "/opt/hadoop/etc/hadoop/scm.keytab"
+
+  # Ozone Manager (OM) Kerberos Settings
+  - name: OZONE-SITE.XML_ozone.om.kerberos.principal
+    value: "om/om@your-hostname"
+  - name: OZONE-SITE.XML_ozone.om.kerberos.keytab.file
+    value: "/opt/hadoop/etc/hadoop/om.keytab"
+  - name: OZONE-SITE.XML_ozone.om.http.auth.kerberos.principal
+    value: "om/om@your-hostname"
+  - name: OZONE-SITE.XML_ozone.om.http.auth.kerberos.keytab
+    value: "/opt/hadoop/etc/hadoop/om.keytab"
+
+  # S3 Gateway (S3G) Kerberos Settings
+  - name: OZONE-SITE.XML_ozone.s3g.kerberos.principal
+    value: "s3g/s3g@your-hostname"
+  - name: OZONE-SITE.XML_ozone.s3g.kerberos.keytab.file
+    value: "/opt/hadoop/etc/hadoop/s3g.keytab"
+  - name: OZONE-SITE.XML_ozone.s3g.http.auth.kerberos.principal
+    value: "s3g/s3g@your-hostname"
+  - name: OZONE-SITE.XML_ozone.s3g.http.auth.kerberos.keytab
+    value: "/opt/hadoop/etc/hadoop/s3g.keytab"
+
+  # Datanode Kerberos Settings
+  - name: OZONE-SITE.XML_hdds.datanode.kerberos.principal
+    value: "dn/dn@your-hostname"
+  - name: OZONE-SITE.XML_hdds.datanode.kerberos.keytab.file
+    value: "/opt/hadoop/etc/hadoop/dn.keytab"
+
+  # S3 Gateway HTTP Auth Enforcement
+  - name: OZONE-SITE.XML_ozone.s3g.http.auth.type
+    value: "simple"
+  - name: OZONE-SITE.XML_ozone.s3g.http.auth.simple.anonymous.allowed
+    value: "false"
+
+  # Ozone Manager (OM) HTTP Auth Enforcement
+  - name: OZONE-SITE.XML_ozone.om.http.auth.type
+    value: "simple"
+  - name: OZONE-SITE.XML_ozone.om.http.auth.simple.anonymous.allowed
+    value: "false"
+
+  # Recon HTTP Auth Enforcement
+  - name: OZONE-SITE.XML_ozone.recon.http.auth.type
+    value: "kerberos"
+  - name: OZONE-SITE.XML_ozone.recon.http.auth.kerberos.principal
+    value: "HTTP/recon.your-hostname@your-hostname"
+  - name: OZONE-SITE.XML_ozone.recon.http.auth.kerberos.keytab
+    value: "/opt/hadoop/etc/hadoop/ozoneadmin.keytab"
+  - name: OZONE-SITE.XML_ozone.recon.http.auth.simple.anonymous.allowed
+    value: "false"
+
+  - name: OZONE-SITE.XML_ozone.recon.kerberos.principal
+    value: "recon/recon@your-hostname"
+  - name: OZONE-SITE.XML_ozone.recon.keytab.file
+    value: "/opt/hadoop/etc/hadoop/recon.keytab"
+  - name: CORE-SITE.XML_hadoop.http.authentication.signature.secret.file
+    value: "/opt/hadoop/etc/hadoop/hadoop-http-auth-signature-secret"
+
+  # SCM Safe Mode Tuning for Single-Replica / Dev Environments
+  - name: OZONE-SITE.XML_hdds.scm.safemode.threshold.percent
+    value: "0.0"
+  - name: OZONE-SITE.XML_hdds.scm.safemode.min.datanode
+    value: "1"
+
+  - name: OZONE-SITE.XML_ozone.scm.ratis.enable
+    value: "false"
+  - name: OZONE-SITE.XML_ozone.om.ratis.enable
+    value: "false"
+
+  - name: OZONE-SITE.XML_ozone.replication.type
+    value: "STAND_ALONE"
+  - name: OZONE-SITE.XML_ozone.replication
+    value: "1"
+
+# Common envFrom items to set up environment variables (templated)
+envFrom: []
+# Common annotations for pods
+podAnnotations: {}
+
+# Configuration management
+configuration:
+  # Configuration directory, i.e. $OZONE_CONF_DIR
+  dir: /opt/hadoop/etc/hadoop
+  # Configuration files from the specified keys (file name) and values (file content)
+  files:
+    'log4j.properties': |-
+      log4j.rootLogger=INFO,stdout
+      log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+      log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+      log4j.appender.stdout.layout.ConversionPattern=%d{ISO8601} [%t] %-5p %c{2} (%F:%M(%L)) - %m%n
+
+  # Automatically mount all generated keytabs, krb5.conf, and config files from the secret
+  filesFrom:
+    - secret:
+        name: ozone-kerberos-secrets
+    - secret:
+        name: hadoop-http-auth-signature-secret
+
+# Constrain all Ozone pods to nodes with specific node labels
+nodeSelector: {}
+# Constrain all Ozone pods to nodes by affinity/anti-affinity rules
+affinity: {}
+# Allow to schedule all Ozone pods on nodes with matching taints
+tolerations: []
+
+# Common security context
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Datanode configuration
+datanode:
+  replicas: 1
+  command: ~
+  args: ["ozone", "datanode"]
+  env:
+    - name: OZONE_OPTS
+      value: "-Djava.security.krb5.conf=/opt/hadoop/etc/hadoop/krb5.conf"
+  envFrom: []
+  resources: {}
+  podAnnotations: {}
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+  securityContext: {}
+  service:
+    type: ClusterIP
+    port: 9882
+    ratisIpcPort: 9858
+    ipcPort: 9859
+    nodePort: ~
+    labels: {}
+    annotations: {}
+  persistence:
+    enabled: true
+    accessModes:
+      - ReadWriteOnce
+    path: /data
+    size: 50Gi
+    storageClassName: your-kubernetes
+
+# Ozone Manager configuration
+om:
+  replicas: 1
+  command: ~
+  args: ["ozone", "om"]
+  env:
+    - name: OZONE_OPTS
+      value: "-Djava.security.krb5.conf=/opt/hadoop/etc/hadoop/krb5.conf"
+  envFrom: []
+  resources: {}
+  podAnnotations: {}
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+  securityContext: {}
+  service:
+    type: ClusterIP
+    port: 9874
+    ratisPort: 9872
+    rpcPort: 9862
+    nodePort: ~
+    labels: {}
+    annotations: {}
+  persistence:
+    enabled: true
+    accessModes:
+      - ReadWriteOnce
+    path: /data
+    size: 50Gi
+    storageClassName: your-kubernetes
+
+# Storage Container Manager configuration
+scm:
+  replicas: 1
+  command: ~
+  args: ["ozone", "scm"]
+  env:
+    - name: OZONE_OPTS
+      value: "-Djava.security.krb5.conf=/opt/hadoop/etc/hadoop/krb5.conf"
+  envFrom: []
+  resources: {}
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+  securityContext: {}
+  service:
+    type: ClusterIP
+    port: 9876
+    rpcDatanodePort: 9861
+    blockClientPort: 9863
+    rpcClientPort: 9860
+    ratisPort: 9894
+    grpcPort: 9895
+    nodePort: ~
+    labels: {}
+    annotations: {}
+  persistence:
+    enabled: true
+    accessModes:
+      - ReadWriteOnce
+    path: /data
+    size: 50Gi
+    storageClassName: your-kubernetes
+
+# S3 Gateway configuration
+s3g:
+  replicas: 1
+  command: ~
+  args: ["ozone", "s3g"]
+  env:
+    - name: OZONE_OPTS
+      value: "-Djava.security.krb5.conf=/opt/hadoop/etc/hadoop/krb5.conf"
+  envFrom: []
+  resources: {}
+  podAnnotations: {}
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+  securityContext: {}
+  service:
+    rest:
+      value: /opt/hadoop/etc/hadoop/krb5.conf
+  service:
+    rest:
+      type: ClusterIP
+      port: 9878
+      nodePort: ~
+      labels: {}
+      annotations: {}
+    web:
+      type: ClusterIP
+      port: 19878
+      nodePort: ~
+      labels: {}
+      annotations: {}
+  persistence:
+    enabled: true
+    accessModes:
+      - ReadWriteOnce
+    path: /data
+    size: 50Gi
+    storageClassName: your-kubernetes
+
+# Helm Manager configuration
+helm:
+  env: []
+  envFrom: []
+  resources: {}
+  podAnnotations: {}
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+  securityContext: {}
+  backoffLimit: 5
+  persistence:
+    enabled: true
+    accessModes:
+      - ReadWriteOnce
+    path: /data
+    size: 50Gi
+    storageClassName: your-kubernetes
+
+# Recon configuration
+recon:
+  enabled: true
+  command: ~
+  args: ["ozone", "recon"]
+  env:
+    - name: OZONE_OPTS
+      value: "-Djava.security.krb5.conf=/opt/hadoop/etc/hadoop/krb5.conf"
+  envFrom: []
+  nodeSelector: {}
+  affinity: {}
+  tolerations: {}
+  securityContext: {}
+  service:
+    type: ClusterIP
+    port: 9888
+    nodePort: ~
+    labels: {}
+    annotations: {}
+
+httpRoutes:
+  recon:
+    enabled: true
+    name: recon-route
+    hostnames:
+      - ozone.your-hostname
+    parentRefs:
+      - group: gateway.networking.k8s.io
+        kind: Gateway
+        name: apisix-public
+        namespace: api-gateway
+        sectionName: http
+      - group: gateway.networking.k8s.io
+        kind: Gateway
+        name: apisix-public
+        namespace: api-gateway
+        sectionName: https
+    rules:
+      - matches:
+          - path:
+              type: PathPrefix
+              value: /
+        backendRefs:
+          - group: ""
+            kind: Service
+            name: recon
+            port: 9888
+            weight: 1
+
+  s3g:
+    enabled: true
+    name: s3g-route
+    hostnames:
+      - ozone-api.your-hostname
+    parentRefs:
+      - group: gateway.networking.k8s.io
+        kind: Gateway
+        name: apisix-public
+        namespace: api-gateway
+        sectionName: http
+      - group: gateway.networking.k8s.io
+        kind: Gateway
+        name: apisix-public
+        namespace: api-gateway
+        sectionName: https
+    rules:
+      - matches:
+          - path:
+              type: PathPrefix
+              value: /
+        backendRefs:
+          - group: ""
+            kind: Service
+            name: s3g-rest
+            port: 9878
+            weight: 1
+
+  s3manager:
+    enabled: true
+    name: s3manager-route
+    hostnames:
+      - ozone-s3-manager.your-hostname
+    parentRefs:
+      - group: gateway.networking.k8s.io
+        kind: Gateway
+        name: apisix-public
+        namespace: api-gateway
+        sectionName: http
+      - group: gateway.networking.k8s.io
+        kind: Gateway
+        name: apisix-public
+        namespace: api-gateway
+        sectionName: https
+    rules:
+      - matches:
+          - path:
+              type: PathPrefix
+              value: /
+        backendRefs:
+          - group: ""
+            kind: Service
+            name: s3manager
+            port: 9879
+            weight: 1
+
+job:
+  name: ozone-kerberos-generator
+  serviceAccountName: ozone-bootstrap-sa
+  restartPolicy: OnFailure
+  image:
+    registry: registry.support.openinnovation.ai
+    repository: gitlab/openinnovationai/platform/infra/utils/ozone
+    tag: 20260507-1-with-kubectl-python-linux
+    pullPolicy: IfNotPresent
+
+kerberos:
+  realm: your-hostname
+  domainRealm: your-hostname
+  masterPassword: temporary-master-password-123
+  kdcEndpoint: kdc-service:88
+  adminServer: kdc-service:749
+  secrets:
+    kerberosSecretName: ozone-kerberos-secrets
+    signatureSecretName: hadoop-http-auth-signature-secret
+  keytabs:
+    - principal: scm/scm
+      name: scm
+    - principal: om/om
+      name: om
+    - principal: s3g/s3g
+      name: s3g
+    - principal: dn/dn
+      name: dn
+    - principal: ozone/admin
+      name: ozoneadmin
+    - principal: recon/recon
+      name: recon
+
+# Secret Sync Job Configuration
+secretSyncJob:
+  enabled: true
+  name: ozone-s3-secret-sync
+  serviceAccountName: ozone-secret-generator-sa
+  podName: ozone-om-0
+  image:
+    repository: bitnami/kubectl
+    tag: latest
+    pullPolicy: IfNotPresent
+
+s3manager:
+  enabled: true
+  name: s3manager
+  replicas: 1
+  image:
+    repository: cloudlena/s3manager
+    tag: v0.11.1
+    pullPolicy: IfNotPresent
+  env:
+    endpoint: "ozone-s3g-rest:9878"
+    useSsl: "false"
+    bucketLookup: "Path"
+    region: "us-east-1"
+    allowDelete: "false"
+  secret:
+    name: "ozone-s3-chairman-backend"          # Replace with your actual Kubernetes Secret name (e.g., generated by your secretSyncJob)
+    accessKeyKey: "aws-access-key"  # Key inside the secret for the Access Key ID
+    secretKeyKey: "aws-secret-key" # Key inside the secret for the Secret Access Key
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+  service:
+    type: ClusterIP
+    port: 9879
+    targetPort: 8080

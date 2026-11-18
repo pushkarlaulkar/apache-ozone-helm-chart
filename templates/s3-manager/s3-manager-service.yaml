@@ -1,0 +1,22 @@
+{{- if .Values.s3manager.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.s3manager.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.s3manager.name }}
+    app: {{ .Values.s3manager.name }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  type: {{ .Values.s3manager.service.type }}
+  ports:
+    - port: {{ .Values.s3manager.service.port }}
+      targetPort: {{ .Values.s3manager.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ .Values.s3manager.name }}
+{{- end -}}
