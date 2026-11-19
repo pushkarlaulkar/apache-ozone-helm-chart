@@ -30,14 +30,14 @@ spec:
           cp /etc/security/keys/principal ./principal
           cp /etc/security/keys/principal.kadm5 ./principal.kadm5
           cp /etc/security/keys/principal.ok ./principal.ok
-          cp /etc/security/keys/kdc-stash ./.k5.CLOUD.DEVELOP.OPENINNOVATION.AI
+          cp /etc/security/keys/kdc-stash ./.k5.{{ .Values.kerberos.realm }}
           cp /etc/security/keys/kdc.conf ./kdc.conf
           
           echo "Staged files in /var/lib/krb5kdc:"
           ls -la /var/lib/krb5kdc
           
           echo "Starting Kerberos KDC daemon..."
-          exec krb5kdc -n -r CLOUD.DEVELOP.OPENINNOVATION.AI
+          exec krb5kdc -n -r {{ .Values.kerberos.realm }}
         volumeMounts:
         - name: keys-vol
           mountPath: /etc/security/keys
