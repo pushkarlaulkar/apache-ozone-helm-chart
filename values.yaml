@@ -431,8 +431,8 @@ job:
   serviceAccountName: ozone-bootstrap-sa
   restartPolicy: OnFailure
   image:
-    registry: registry.support.openinnovation.ai
-    repository: gitlab/openinnovationai/platform/infra/utils/ozone
+    registry: docker.io
+    repository: plaulkaroiai/ozone
     tag: 20260507-1-with-kubectl-python-linux
     pullPolicy: IfNotPresent
 

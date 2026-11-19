@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: kdc
-        image: registry.support.openinnovation.ai/gitlab/openinnovationai/platform/infra/utils/ozone:20260507-1-with-kubectl-python-linux
+        image: docker.io/plaulkaroiai/ozone:20260507-1-with-kubectl-python-linux
         command:
         - /bin/bash
         - -c
