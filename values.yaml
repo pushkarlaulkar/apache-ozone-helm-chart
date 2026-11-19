@@ -32,7 +32,7 @@ env:
   - name: CORE-SITE.XML_hadoop.security.authorization
     value: "true"
   - name: CORE-SITE.XML_hadoop.security.auth_to_local
-    value: "RULE:[2:$1@$0](.*@your-hostname)s/.*/ozoneadmin/"
+    value: "RULE:[2:$1@$0](.*@your-hostname-in-capital)s/.*/ozoneadmin/"
 
   # Security & Authentication Settings
   - name: OZONE-SITE.XML_ozone.security.enabled
@@ -52,37 +52,37 @@ env:
 
   # SCM Kerberos Settings
   - name: OZONE-SITE.XML_hdds.scm.kerberos.principal
-    value: "scm/scm@your-hostname"
+    value: "scm/scm@your-hostname-in-capital"
   - name: OZONE-SITE.XML_hdds.scm.kerberos.keytab.file
     value: "/opt/hadoop/etc/hadoop/scm.keytab"
   - name: OZONE-SITE.XML_hdds.scm.http.auth.kerberos.principal
-    value: "scm/scm@your-hostname"
+    value: "scm/scm@your-hostname-in-capital"
   - name: OZONE-SITE.XML_hdds.scm.http.auth.kerberos.keytab
     value: "/opt/hadoop/etc/hadoop/scm.keytab"
 
   # Ozone Manager (OM) Kerberos Settings
   - name: OZONE-SITE.XML_ozone.om.kerberos.principal
-    value: "om/om@your-hostname"
+    value: "om/om@your-hostname-in-capital"
   - name: OZONE-SITE.XML_ozone.om.kerberos.keytab.file
     value: "/opt/hadoop/etc/hadoop/om.keytab"
   - name: OZONE-SITE.XML_ozone.om.http.auth.kerberos.principal
-    value: "om/om@your-hostname"
+    value: "om/om@your-hostname-in-capital"
   - name: OZONE-SITE.XML_ozone.om.http.auth.kerberos.keytab
     value: "/opt/hadoop/etc/hadoop/om.keytab"
 
   # S3 Gateway (S3G) Kerberos Settings
   - name: OZONE-SITE.XML_ozone.s3g.kerberos.principal
-    value: "s3g/s3g@your-hostname"
+    value: "s3g/s3g@your-hostname-in-capital"
   - name: OZONE-SITE.XML_ozone.s3g.kerberos.keytab.file
     value: "/opt/hadoop/etc/hadoop/s3g.keytab"
   - name: OZONE-SITE.XML_ozone.s3g.http.auth.kerberos.principal
-    value: "s3g/s3g@your-hostname"
+    value: "s3g/s3g@your-hostname-in-capital"
   - name: OZONE-SITE.XML_ozone.s3g.http.auth.kerberos.keytab
     value: "/opt/hadoop/etc/hadoop/s3g.keytab"
 
   # Datanode Kerberos Settings
   - name: OZONE-SITE.XML_hdds.datanode.kerberos.principal
-    value: "dn/dn@your-hostname"
+    value: "dn/dn@your-hostname-in-capital"
   - name: OZONE-SITE.XML_hdds.datanode.kerberos.keytab.file
     value: "/opt/hadoop/etc/hadoop/dn.keytab"
 
@@ -109,7 +109,7 @@ env:
     value: "false"
 
   - name: OZONE-SITE.XML_ozone.recon.kerberos.principal
-    value: "recon/recon@your-hostname"
+    value: "recon/recon@your-hostname-in-capital"
   - name: OZONE-SITE.XML_ozone.recon.keytab.file
     value: "/opt/hadoop/etc/hadoop/recon.keytab"
   - name: CORE-SITE.XML_hadoop.http.authentication.signature.secret.file
@@ -437,7 +437,7 @@ job:
     pullPolicy: IfNotPresent
 
 kerberos:
-  realm: your-hostname
+  realm: your-hostname-in-capital
   domainRealm: your-hostname
   masterPassword: temporary-master-password-123
   kdcEndpoint: kdc-service:88
