@@ -432,7 +432,7 @@ job:
   restartPolicy: OnFailure
   image:
     registry: docker.io
-    repository: plaulkaroiai/ozone
+    repository: plaulkar/ozone
     tag: 20260507-1-with-kubectl-python-linux
     pullPolicy: IfNotPresent
 
